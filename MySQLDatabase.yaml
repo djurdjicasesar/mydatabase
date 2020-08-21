@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Template that creates MySQL database.
+Parameters:
+  VpcId:
+    Description: VPC Id
+    Type: String
+    Default: 
+  SubnetId:
+    Type: String
+    Default: 
+  SubnetId2:
+    Type: String
+    Default: 
+  AvailabilityZone:
+    Type: String
+    Default: 
+    AllowedValues:
+      - 
+      - 
+  DBMultiAZ:
+    Description: 'Specifies if the database instance is deployed to multiple Availability Zones for HA.'
+    Type: String
+    Default: true
+    AllowedValues: [true, false]
+
+Resources:
+  RecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: String
+      Name: String
+      ResourceRecords:
+        - !GetAtt 'String'
+      TTL: '60'
+      Type: CNAME
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-DBSG"
+      GroupDescription: !Ref 'AWS::StackName'
+      VpcId: !Ref VpcId
+  ingbasemyService:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: TCP
+      FromPort: 8090
+      ToPort: 8090
+      GroupId: !GetAtt DatabaseSecurityGroup.GroupId
+      Description: ""
+    DependsOn: DatabaseSecurityGroup
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 22
+      CidrIp: 0.0.0.0/0
+      GroupId: !GetAtt DatabaseSecurityGroup.GroupId
+      Description: "DB ssh"
+    DependsOn: DatabaseSecurityGroup
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: DBSubnetGroup
+      SubnetIds:
+        - !Ref SubnetId
+        - !Ref SubnetId2
+      Tags:
+        - Key: Name
+          Value: DBSGGroup
+  DBInstance:
+    DeletionPolicy: Snapshot # default
+    UpdateReplacePolicy: Snapshot
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: '5'
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      DBInstanceClass: db.t2.micro
+      DBName: "database"
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      Engine: MySQL
+      MasterUsername: string
+      MasterUserPassword: string
+      MultiAZ: !Ref DBMultiAZ
+      VPCSecurityGroups:
+        - !Ref DatabaseSecurityGroup
+
+  parameterDBSecurityGroupId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DBSG ID"
+      Name: DBSecurityGroupId
+      Type: String
+      Value: !GetAtt DatabaseSecurityGroup.GroupId
+
